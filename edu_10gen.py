@@ -11,6 +11,11 @@ from pprint import pprint
 
 from urllib import urlencode
 
+YDL_PARAMS_FILE = 'ydl_params.json'
+from youtube_dl.FileDownloader import FileDownloader
+from youtube_dl.InfoExtractors  import YoutubeIE
+from youtube_dl.utils import sanitize_filename
+
 try:
     from bs4 import BeautifulSoup
     import mechanize
@@ -30,7 +35,7 @@ try:
 except ImportError:
     TARGETDIR = ''
 
-site_url = 'https://education.10gen.com'
+SITE_URL = 'https://education.10gen.com'
 login_url = '/login'
 dashboard_url = '/dashboard'
 youtube_url = 'http://www.youtube.com/watch?v='
@@ -61,63 +66,93 @@ def csrfCookie(csrftoken):
             comment=None, comment_url=None,
             rest={'HttpOnly': None}, rfc2109=False)
 
-
-br = mechanize.Browser()
-cj = mechanize.LWPCookieJar()
-csrftoken = makeCsrf()
-cj.set_cookie(csrfCookie(csrftoken))
-br.set_handle_robots(False)
-br.set_cookiejar(cj)
-br.addheaders.append(('X-CSRFToken',csrftoken))
-br.addheaders.append(('Referer','https://education.10gen.com'))
-try:
-    login_resp = br.open(site_url + login_url, urlencode({'email':EMAIL, 'password':PASSWORD}))
-except mechanize.HTTPError, e:
-    print "Unexpected error:", e.code
-    exit()
-login_state = json.loads(login_resp.read())
-
-if not login_state.get('success'):
-    print login_state.get('value')
-    exit()
-
-dashboard = br.open(site_url + dashboard_url)
-dashboard_soup = BeautifulSoup(dashboard.read())
-username = dashboard_soup.find('section', 'user-info').findAll('span')[1].text
-print 'Logged as %s\n\n' % username
-
-my_courses = dashboard_soup.findAll('article', 'my-course')
-for my_course in my_courses:
-    course_url = my_course.a['href']
-    course_name = my_course.h3.text
-    f = open(course_name + '.txt', 'w')
-    print '%s' % course_name
-    courseware_url = re.sub(r'\/info$','/courseware',course_url)
-    courseware = br.open(site_url+courseware_url)
-    courseware_soup = BeautifulSoup(courseware.read())
-    chapters = courseware_soup.findAll('div','chapter')
-    for chapter in chapters:
-        chapter_title = chapter.find('h3').find('a').text
-        print '\t%s' % chapter_title
-        paragraphs = chapter.find('ul').findAll('li')
-        for paragraph in paragraphs:
-            par_name = paragraph.p.text
-            par_url = paragraph.a['href']
-            par = br.open(site_url + par_url)
+class TenGenBrowser(object):
+    def __init__(self):
+        self._br = mechanize.Browser()
+        self._cj = mechanize.LWPCookieJar()
+        csrftoken = makeCsrf()
+        self._cj.set_cookie(csrfCookie(csrftoken))
+        self._br.set_handle_robots(False)
+        self._br.set_cookiejar(self._cj)
+        self._br.addheaders.append(('X-CSRFToken',csrftoken))
+        self._br.addheaders.append(('Referer',SITE_URL))
+        self._logged_in = False
+        with open(YDL_PARAMS_FILE) as fydl:
+            self._fd = FileDownloader(json.load(fydl))
+            self._fd.add_info_extractor(YoutubeIE())
+    def login(self, email, password):
+        try:
+            login_resp = self._br.open(SITE_URL + login_url, urlencode({'email':email, 'password':password}))
+            login_state = json.loads(login_resp.read())
+            self._logged_in = login_state.get('success')
+            if not self._logged_in:
+                print login_state.get('value')
+            return self._logged_in
+        except mechanize.HTTPError, e:
+            sys.exit('Can\'t sign in')
+    def list_courses(self):
+        self.courses = []
+        if self._logged_in:
+            dashboard = self._br.open(SITE_URL + dashboard_url)
+            dashboard_soup = BeautifulSoup(dashboard.read())
+            my_courses = dashboard_soup.findAll('article', 'my-course')
+            i = 0
+            for my_course in my_courses:
+                i += 1
+                course_url = my_course.a['href']
+                courseware_url = re.sub(r'\/info$','/courseware',course_url)
+                course_name = my_course.h3.text
+                self.courses.append({'name':course_name, 'url':courseware_url})
+                print '[%02i] %s' % (i, course_name)
+    def list_chapters(self, course_i):
+        self.paragraphs = []
+        if course_i <= len(self.courses) and course_i >= 0:
+            course = self.courses[course_i - 1]
+            course_name = course['name']
+            courseware = self._br.open(SITE_URL+course['url'])
+            courseware_soup = BeautifulSoup(courseware.read())
+            chapters = courseware_soup.findAll('div','chapter')
+            i = 0
+            for chapter in chapters:
+                i += 1
+                chapter_name = chapter.find('h3').find('a').text
+                print '\t[%02i] %s' % (i, chapter_name)
+                paragraphs = chapter.find('ul').findAll('li')
+                j = 0
+                for paragraph in paragraphs:
+                    j += 1
+                    par_name = paragraph.p.text
+                    par_url = paragraph.a['href']
+                    self.paragraphs.append((course_name, i, chapter_name, par_name, par_url))
+                    print '\t[%02i.%02i] %s' % (i, j, par_name)
+    def download(self):
+        j = 0
+        for (cn, i, chn, pn, url) in self.paragraphs:
+            j += 1
+            par = self._br.open(SITE_URL + url)
             par_soup = BeautifulSoup(par.read())
             contents = par_soup.findAll('div','seq_contents')
-            par_part = 0
+            k = 0
             for content in contents:
                 content_soup = BeautifulSoup(content.text)
                 try:
+                    video_type = content_soup.h2.text.strip()
                     video_stream = content_soup.find('div','video')['data-streams']
                     video_id = video_stream.split(':')[1]
                     video_url = youtube_url + video_id
-                    video_type = content_soup.h2.text.strip()
-                    par_part += 1
-                    print '\t\t%s - %i-%s: %s' % (par_name, par_part, video_type, video_url)
-                    f.writelines(video_url+'\n')
+                    k += 1
+                    print '[%02i.%02i.%i] %s (%s)' % (i, j, k, pn, video_type)
+                    #f.writelines(video_url+'\n')
+                    outtmpl = sanitize_filename(cn) + '\\' + sanitize_filename(chn) + '\\' + '%02i.%02i.%i ' % (i,j,k) + sanitize_filename('%s (%s)' % (pn, video_type)) + '.%(ext)s'
+                    self._fd.params['outtmpl'] = outtmpl
+                    self._fd.download([video_url])
                 except:
                     pass
-    f.close()
-    print '\nYou can now downlaod lecture videos with the following command:\n    youtube-dl -a "%s.txt" -A -t\n' % course_name
+
+
+tgb = TenGenBrowser()
+tgb.login(EMAIL, PASSWORD)
+tgb.list_courses()
+for c in range(0,len(tgb.courses)):
+    tgb.list_chapters(c)
+    tgb.download()

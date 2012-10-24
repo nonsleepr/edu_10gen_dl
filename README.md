@@ -1,9 +1,10 @@
-##Generate list of course videos from eudcation.10gen.com.
+##Download course videos from eudcation.10gen.com.
 
 File `config.py` should be populated with login/password.
 
-After completion, the script will create text file with youtube links, named after the course.
-This file could then be used to download videos with [youtube-dl](https://github.com/rg3/youtube-dl/).
+This script uses code from [youtube-dl](https://github.com/rg3/youtube-dl/) project to download videos.
+
+Script will skip already downloaded videos, although it will look for video links on 10gen's site.
 
 ###Dependencies:
 * Python 2.7
