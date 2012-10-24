@@ -98,18 +98,24 @@ for my_course in my_courses:
     for chapter in chapters:
         chapter_title = chapter.find('h3').find('a').text
         print '\t%s' % chapter_title
-        paragraphs = chapter.find('ul').findAll('li',' ')
+        paragraphs = chapter.find('ul').findAll('li')
         for paragraph in paragraphs:
             par_name = paragraph.p.text
             par_url = paragraph.a['href']
             par = br.open(site_url + par_url)
             par_soup = BeautifulSoup(par.read())
-            content = par_soup.findAll('div','seq_contents')[0].text
-            content_soup = BeautifulSoup(content)
-            video_stream = content_soup.find('div','video')['data-streams']
-            video_id = video_stream.split(':')[1]
-            video_url = youtube_url + video_id
-            print '\t\t%s: %s' % (par_name, video_url)
-            f.writelines(video_url+'\n')
+            contents = par_soup.findAll('div','seq_contents')
+            par_part = 0
+            for content in contents:
+                content_soup = BeautifulSoup(content.text)
+                try:
+                    video_stream = content_soup.find('div','video')['data-streams']
+                    video_id = video_stream.split(':')[1]
+                    video_url = youtube_url + video_id
+                    par_part += 1
+                    print '\t\t%s - %i: %s' % (par_name, par_part, video_url)
+                    f.writelines(video_url+'\n')
+                except:
+                    pass
     f.close()
     print '\nYou can now downlaod lecture videos with the following command:\n    youtube-dl -a "%s.txt" -A -t\n' % course_name
