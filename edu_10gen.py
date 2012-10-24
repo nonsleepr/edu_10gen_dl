@@ -76,6 +76,7 @@ except mechanize.HTTPError, e:
     print "Unexpected error:", e.code
     exit()
 login_state = json.loads(login_resp.read())
+
 if not login_state.get('success'):
     print login_state.get('value')
     exit()
@@ -112,8 +113,9 @@ for my_course in my_courses:
                     video_stream = content_soup.find('div','video')['data-streams']
                     video_id = video_stream.split(':')[1]
                     video_url = youtube_url + video_id
+                    video_type = content_soup.h2.text.strip()
                     par_part += 1
-                    print '\t\t%s - %i: %s' % (par_name, par_part, video_url)
+                    print '\t\t%s - %i-%s: %s' % (par_name, par_part, video_type, video_url)
                     f.writelines(video_url+'\n')
                 except:
                     pass
