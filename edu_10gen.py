@@ -1,13 +1,10 @@
-import os
 import re
 import sys
 
 import json
-from datetime import date
 
 from random import random
 from math import floor
-from pprint import pprint
 
 from urllib import urlencode
 
@@ -30,19 +27,10 @@ except ImportError:
     print "You should provide config.py file with EMAIL and PASSWORD."
     sys.exit(1)
 
-try:
-    from config import TARGETDIR
-except ImportError:
-    TARGETDIR = ''
-
 SITE_URL = 'https://education.10gen.com'
 login_url = '/login'
 dashboard_url = '/dashboard'
 youtube_url = 'http://www.youtube.com/watch?v='
-
-username_xpath = '/html/body/section/section[1]/section[1]/section/ul/li[2]/span[2]'
-
-COOKIEFILE = 'c:/Users/EB186011/cookie_10gen.txt'
 
 def makeCsrf():
     t = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
