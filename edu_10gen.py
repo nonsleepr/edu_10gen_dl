@@ -1,5 +1,6 @@
 import re
 import sys
+import glob
 
 import json
 
@@ -21,11 +22,17 @@ except ImportError:
            "Please see requirements.txt.")
     sys.exit(1)
 
+
 try:
     from config import EMAIL, PASSWORD
 except ImportError:
     print "You should provide config.py file with EMAIL and PASSWORD."
     sys.exit(1)
+
+if len(sys.argv) == 2:
+    DIRECTORY = sys.argv[1].strip('"') + '/'
+else:
+    DIRECTORY = ''
 
 SITE_URL = 'https://education.10gen.com'
 login_url = '/login'
@@ -115,8 +122,14 @@ class TenGenBrowser(object):
                     print '\t[%02i.%02i] %s' % (i, j, par_name)
     def download(self):
         j = 0
-        for (cn, i, chn, pn, url) in self.paragraphs:
+        for (course_name, i, chapter_name, par_name, url) in self.paragraphs:
             j += 1
+            nametmpl = sanitize_filename(course_name) + '/' \
+                     + sanitize_filename(chapter_name) + '/' \
+                     + '%02i.%02i.*' % (i,j)
+            fn = glob.glob(DIRECTORY + nametmpl)
+            if fn:
+                continue
             par = self._br.open(SITE_URL + url)
             par_soup = BeautifulSoup(par.read())
             contents = par_soup.findAll('div','seq_contents')
@@ -129,9 +142,12 @@ class TenGenBrowser(object):
                     video_id = video_stream.split(':')[1]
                     video_url = youtube_url + video_id
                     k += 1
-                    print '[%02i.%02i.%i] %s (%s)' % (i, j, k, pn, video_type)
+                    print '[%02i.%02i.%i] %s (%s)' % (i, j, k, par_name, video_type)
                     #f.writelines(video_url+'\n')
-                    outtmpl = sanitize_filename(cn) + '\\' + sanitize_filename(chn) + '\\' + '%02i.%02i.%i ' % (i,j,k) + sanitize_filename('%s (%s)' % (pn, video_type)) + '.%(ext)s'
+                    outtmpl = DIRECTORY + sanitize_filename(course_name) + '\/' \
+                            + sanitize_filename(chapter_name) + '\/' \
+                            + '%02i.%02i.%i ' % (i,j,k) \
+                            + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
                 except:
