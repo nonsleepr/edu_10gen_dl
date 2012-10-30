@@ -118,12 +118,10 @@ class TenGenBrowser(object):
                     j += 1
                     par_name = paragraph.p.text
                     par_url = paragraph.a['href']
-                    self.paragraphs.append((course_name, i, chapter_name, par_name, par_url))
+                    self.paragraphs.append((course_name, i, j, chapter_name, par_name, par_url))
                     print '\t[%02i.%02i] %s' % (i, j, par_name)
     def download(self):
-        j = 0
-        for (course_name, i, chapter_name, par_name, url) in self.paragraphs:
-            j += 1
+        for (course_name, i, j, chapter_name, par_name, url) in self.paragraphs:
             nametmpl = sanitize_filename(course_name) + '/' \
                      + sanitize_filename(chapter_name) + '/' \
                      + '%02i.%02i.*' % (i,j)
