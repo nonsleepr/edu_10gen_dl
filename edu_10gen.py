@@ -156,8 +156,8 @@ class TenGenBrowser(object):
                     k += 1
                     print '[%02i.%02i.%i] %s (%s)' % (i, j, k, par_name, video_type)
                     #f.writelines(video_url+'\n')
-                    outtmpl = DIRECTORY + sanitize_filename(course_name) + '\/' \
-                            + sanitize_filename(chapter_name) + '\/' \
+                    outtmpl = DIRECTORY + sanitize_filename(course_name) + '/' \
+                            + sanitize_filename(chapter_name) + '/' \
                             + '%02i.%02i.%i ' % (i,j,k) \
                             + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     self._fd.params['outtmpl'] = outtmpl
