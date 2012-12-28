@@ -1,6 +1,6 @@
-##Download course videos from eudcation.10gen.com.
+##Download course videos from education.10gen.com or any other site 'Powered by EdX' (including, of course, http://edx.org itself).
 
-File `config.py` should be populated with login/password.
+File `config.py` should be populated with login/password and site you're downloading video from.
 
 This script uses code from [youtube-dl](https://github.com/rg3/youtube-dl/) project to download videos.
 
