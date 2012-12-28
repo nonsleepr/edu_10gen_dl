@@ -29,12 +29,17 @@ except ImportError:
     print "You should provide config.py file with EMAIL and PASSWORD."
     sys.exit(1)
 
+try:
+    from config import SITE_URL, DOMAIN
+except ImportError:
+    print "You should provide config.py file with SITE_URL and DOMAIN."
+    sys.exit(1)
+
 if len(sys.argv) == 2:
     DIRECTORY = sys.argv[1].strip('"') + '/'
 else:
     DIRECTORY = ''
 
-SITE_URL = 'https://education.10gen.com'
 login_url = '/login'
 dashboard_url = '/dashboard'
 youtube_url = 'http://www.youtube.com/watch?v='
@@ -52,7 +57,7 @@ def csrfCookie(csrftoken):
             name='csrftoken',
             value=csrftoken,
             port=None, port_specified=False,
-            domain='10gen.com',
+            domain=DOMAIN,
             domain_specified=False,
             domain_initial_dot=False,
             path='/', path_specified=True,
@@ -75,6 +80,7 @@ class TenGenBrowser(object):
         with open(YDL_PARAMS_FILE) as fydl:
             self._fd = FileDownloader(json.load(fydl))
             self._fd.add_info_extractor(YoutubeIE())
+
     def login(self, email, password):
         try:
             login_resp = self._br.open(SITE_URL + login_url, urlencode({'email':email, 'password':password}))
@@ -85,6 +91,7 @@ class TenGenBrowser(object):
             return self._logged_in
         except mechanize.HTTPError, e:
             sys.exit('Can\'t sign in')
+
     def list_courses(self):
         self.courses = []
         if self._logged_in:
@@ -99,6 +106,7 @@ class TenGenBrowser(object):
                 course_name = my_course.h3.text
                 self.courses.append({'name':course_name, 'url':courseware_url})
                 print '[%02i] %s' % (i, course_name)
+
     def list_chapters(self, course_i):
         self.paragraphs = []
         if course_i <= len(self.courses) and course_i >= 0:
@@ -120,19 +128,25 @@ class TenGenBrowser(object):
                     par_url = paragraph.a['href']
                     self.paragraphs.append((course_name, i, j, chapter_name, par_name, par_url))
                     print '\t[%02i.%02i] %s' % (i, j, par_name)
+
     def download(self):
+        print "\n-----------------------\nStart downloading\n-----------------------\n"
         for (course_name, i, j, chapter_name, par_name, url) in self.paragraphs:
             nametmpl = sanitize_filename(course_name) + '/' \
                      + sanitize_filename(chapter_name) + '/' \
                      + '%02i.%02i.*' % (i,j)
             fn = glob.glob(DIRECTORY + nametmpl)
+            
             if fn:
+                print "Processing of %s skipped" % nametmpl
                 continue
+            print "Processing %s..." % nametmpl
             par = self._br.open(SITE_URL + url)
             par_soup = BeautifulSoup(par.read())
             contents = par_soup.findAll('div','seq_contents')
             k = 0
             for content in contents:
+                #print "Content: %s" % content
                 content_soup = BeautifulSoup(content.text)
                 try:
                     video_type = content_soup.h2.text.strip()
@@ -148,7 +162,8 @@ class TenGenBrowser(object):
                             + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
-                except:
+                except Exception as e:
+                    #print "Error: %s" % e
                     pass
 
 
