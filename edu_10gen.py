@@ -100,10 +100,16 @@ class TenGenBrowser(object):
             my_courses = dashboard_soup.findAll('article', 'my-course')
             i = 0
             for my_course in my_courses:
-                i += 1
                 course_url = my_course.a['href']
-                courseware_url = re.sub(r'\/info$','/courseware',course_url)
                 course_name = my_course.h3.text
+                
+                launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
+                launch_download = raw_input(launch_download_msg)
+                if (launch_download.lower() == "n"):
+                    continue
+
+                i += 1
+                courseware_url = re.sub(r'\/info$','/courseware',course_url)
                 self.courses.append({'name':course_name, 'url':courseware_url})
                 print '[%02i] %s' % (i, course_name)
 
@@ -118,8 +124,14 @@ class TenGenBrowser(object):
             chapters = courseware_soup.findAll('div','chapter')
             i = 0
             for chapter in chapters:
-                i += 1
                 chapter_name = chapter.find('h3').find('a').text
+
+                launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
+                launch_download = raw_input(launch_download_msg)
+                if (launch_download.lower() == "n"):
+                    continue
+                
+                i += 1
                 print '\t[%02i] %s' % (i, chapter_name)
                 paragraphs = chapter.find('ul').findAll('li')
                 j = 0
