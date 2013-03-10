@@ -110,6 +110,7 @@ class TenGenBrowser(object):
     def list_chapters(self, course_i):
         self.paragraphs = []
         if course_i < len(self.courses) and course_i >= 0:
+            print "Getting chapters..."
             course = self.courses[course_i]
             course_name = course['name']
             courseware = self._br.open(SITE_URL+course['url'])
