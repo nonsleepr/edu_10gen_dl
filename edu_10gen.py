@@ -35,16 +35,7 @@ except ImportError:
     print "You should provide config.py file with SITE_URL and DOMAIN."
     sys.exit(1)
 
-
-def isInteractiveOn(): 
-    if len(sys.argv) >= 2:
-        if sys.argv[1] == "--interactive":
-            return True
-
-
-    return False
-    
-INTERACTIVE = isInteractiveOn()
+INTERACTIVE = len(sys.argv) >= 2 and sys.argv[1] == "--interactive"
 
 if len(sys.argv) == 2:
     DIRECTORY = sys.argv[1].strip('"') + '/'
