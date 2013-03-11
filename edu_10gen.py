@@ -35,6 +35,17 @@ except ImportError:
     print "You should provide config.py file with SITE_URL and DOMAIN."
     sys.exit(1)
 
+
+def isInteractiveOn(): 
+    if len(sys.argv) >= 2:
+        if sys.argv[1] == "--interactive":
+            return True
+
+
+    return False
+    
+INTERACTIVE = isInteractiveOn()
+
 if len(sys.argv) == 2:
     DIRECTORY = sys.argv[1].strip('"') + '/'
 else:
@@ -103,10 +114,11 @@ class TenGenBrowser(object):
                 course_url = my_course.a['href']
                 course_name = my_course.h3.text
                 
-                launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
-                launch_download = raw_input(launch_download_msg)
-                if (launch_download.lower() == "n"):
-                    continue
+                if INTERACTIVE:
+                    launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
+                    launch_download = raw_input(launch_download_msg)
+                    if (launch_download.lower() == "n"):
+                        continue
 
                 i += 1
                 courseware_url = re.sub(r'\/info$','/courseware',course_url)
@@ -126,10 +138,11 @@ class TenGenBrowser(object):
             for chapter in chapters:
                 chapter_name = chapter.find('h3').find('a').text
 
-                launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
-                launch_download = raw_input(launch_download_msg)
-                if (launch_download.lower() == "n"):
-                    continue
+                if INTERACTIVE:
+                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
+                    launch_download = raw_input(launch_download_msg)
+                    if (launch_download.lower() == "n"):
+                        continue
                 
                 i += 1
                 print '\t[%02i] %s' % (i, chapter_name)

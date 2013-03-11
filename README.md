@@ -14,3 +14,4 @@ Accepts destination path as optional parameter.
 ###Format:
 + `python edu_10gen.py`
 + `python edu_10gen.py c:\Users\MyUser\Lectures\`
++ `python edu_10gen.py --interactive c:\Users\MyUser\Lectures\`
