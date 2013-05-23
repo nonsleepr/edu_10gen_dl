@@ -1,46 +1,21 @@
+import glob
+import json
+import mechanize
 import re
 import sys
-import glob
-
-import json
-
-from random import random
+import os.path
+from bs4 import BeautifulSoup
 from math import floor
-
+from random import random
 from urllib import urlencode
 
-YDL_PARAMS_FILE = 'ydl_params.json'
 from youtube_dl.FileDownloader import FileDownloader
 from youtube_dl.InfoExtractors  import YoutubeIE
 from youtube_dl.utils import sanitize_filename
 
-try:
-    from bs4 import BeautifulSoup
-    import mechanize
-except ImportError:
-    print ("Not all the nessesary libs are installed. " +
-           "Please see requirements.txt.")
-    sys.exit(1)
+import config
+YDL_PARAMS_FILE = 'ydl_params.json'
 
-
-try:
-    from config import EMAIL, PASSWORD
-except ImportError:
-    print "You should provide config.py file with EMAIL and PASSWORD."
-    sys.exit(1)
-
-try:
-    from config import SITE_URL, DOMAIN
-except ImportError:
-    print "You should provide config.py file with SITE_URL and DOMAIN."
-    sys.exit(1)
-
-INTERACTIVE = len(sys.argv) >= 2 and sys.argv[1] == "--interactive"
-
-if len(sys.argv) == 2:
-    DIRECTORY = sys.argv[1].strip('"') + '/'
-else:
-    DIRECTORY = ''
 
 login_url = '/login'
 dashboard_url = '/dashboard'
@@ -59,7 +34,7 @@ def csrfCookie(csrftoken):
             name='csrftoken',
             value=csrftoken,
             port=None, port_specified=False,
-            domain=DOMAIN,
+            domain=config.DOMAIN,
             domain_specified=False,
             domain_initial_dot=False,
             path='/', path_specified=True,
@@ -68,7 +43,8 @@ def csrfCookie(csrftoken):
             comment=None, comment_url=None,
             rest={'HttpOnly': None}, rfc2109=False)
 
-class TenGenBrowser(object):
+
+class EdXBrowser(object):
     def __init__(self):
         self._br = mechanize.Browser()
         self._cj = mechanize.LWPCookieJar()
@@ -77,7 +53,7 @@ class TenGenBrowser(object):
         self._br.set_handle_robots(False)
         self._br.set_cookiejar(self._cj)
         self._br.addheaders.append(('X-CSRFToken',csrftoken))
-        self._br.addheaders.append(('Referer',SITE_URL))
+        self._br.addheaders.append(('Referer',config.SITE_URL))
         self._logged_in = False
         with open(YDL_PARAMS_FILE) as fydl:
             self._fd = FileDownloader(json.load(fydl))
@@ -85,7 +61,7 @@ class TenGenBrowser(object):
 
     def login(self, email, password):
         try:
-            login_resp = self._br.open(SITE_URL + login_url, urlencode({'email':email, 'password':password}))
+            login_resp = self._br.open(config.SITE_URL + login_url, urlencode({'email':email, 'password':password}))
             login_state = json.loads(login_resp.read())
             self._logged_in = login_state.get('success')
             if not self._logged_in:
@@ -97,7 +73,7 @@ class TenGenBrowser(object):
     def list_courses(self):
         self.courses = []
         if self._logged_in:
-            dashboard = self._br.open(SITE_URL + dashboard_url)
+            dashboard = self._br.open(config.SITE_URL + dashboard_url)
             dashboard_soup = BeautifulSoup(dashboard.read())
             my_courses = dashboard_soup.findAll('article', 'my-course')
             i = 0
@@ -122,7 +98,7 @@ class TenGenBrowser(object):
             print "Getting chapters..."
             course = self.courses[course_i]
             course_name = course['name']
-            courseware = self._br.open(SITE_URL+course['url'])
+            courseware = self._br.open(config.SITE_URL+course['url'])
             courseware_soup = BeautifulSoup(courseware.read())
             chapters = courseware_soup.findAll('div','chapter')
             i = 0
@@ -149,16 +125,21 @@ class TenGenBrowser(object):
     def download(self):
         print "\n-----------------------\nStart downloading\n-----------------------\n"
         for (course_name, i, j, chapter_name, par_name, url) in self.paragraphs:
-            nametmpl = sanitize_filename(course_name) + '/' \
-                     + sanitize_filename(chapter_name) + '/' \
-                     + '%02i.%02i.*' % (i,j)
-            fn = glob.glob(DIRECTORY + nametmpl)
+            #nametmpl = sanitize_filename(course_name) + '/' \
+            #         + sanitize_filename(chapter_name) + '/' \
+            #         + '%02i.%02i.*' % (i,j)
+            #fn = glob.glob(DIRECTORY + nametmpl)
+            nametmpl = os.path.join(DIRECTORY,
+                                    sanitize_filename(course_name),
+                                    sanitize_filename(chapter_name),
+                                    '%02i.%02i.*' % (i,j))
+            fn = glob.glob(nametmpl)
             
             if fn:
                 print "Processing of %s skipped" % nametmpl
                 continue
             print "Processing %s..." % nametmpl
-            par = self._br.open(SITE_URL + url)
+            par = self._br.open(config.SITE_URL + url)
             par_soup = BeautifulSoup(par.read())
             contents = par_soup.findAll('div','seq_contents')
             k = 0
@@ -173,20 +154,32 @@ class TenGenBrowser(object):
                     k += 1
                     print '[%02i.%02i.%i] %s (%s)' % (i, j, k, par_name, video_type)
                     #f.writelines(video_url+'\n')
-                    outtmpl = DIRECTORY + sanitize_filename(course_name) + '/' \
-                            + sanitize_filename(chapter_name) + '/' \
-                            + '%02i.%02i.%i ' % (i,j,k) \
-                            + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
+                    #outtmpl = DIRECTORY + sanitize_filename(course_name) + '/' \
+                    #        + sanitize_filename(chapter_name) + '/' \
+                    #        + '%02i.%02i.%i ' % (i,j,k) \
+                    #        + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
+                    outtmpl = os.path.join(DIRECTORY,
+                        sanitize_filename(course_name),
+                        sanitize_filename(chapter_name),
+                        '%02i.%02i.%i ' % (i,j,k) + \
+                        sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s')
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
                 except Exception as e:
                     #print "Error: %s" % e
                     pass
 
+if __name__ == '__main__':
+    INTERACTIVE = ('--interactive' in sys.argv)
 
-tgb = TenGenBrowser()
-tgb.login(EMAIL, PASSWORD)
-tgb.list_courses()
-for c in range(0,len(tgb.courses)):
-    tgb.list_chapters(c)
-    tgb.download()
+    if len(sys.argv) >= 2:
+        DIRECTORY = sys.argv[-1].strip('"')
+    else:
+        DIRECTORY = os.path.curdir
+
+    edxb = EdXBrowser()
+    edxb.login(config.EMAIL, config.PASSWORD)
+    edxb.list_courses()
+    for c in range(0,len(edxb.courses)):
+        edxb.list_chapters(c)
+        edxb.download()
