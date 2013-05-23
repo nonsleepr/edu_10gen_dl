@@ -35,6 +35,8 @@ except ImportError:
     print "You should provide config.py file with SITE_URL and DOMAIN."
     sys.exit(1)
 
+INTERACTIVE = len(sys.argv) >= 2 and sys.argv[1] == "--interactive"
+
 if len(sys.argv) == 2:
     DIRECTORY = sys.argv[1].strip('"') + '/'
 else:
@@ -100,16 +102,24 @@ class TenGenBrowser(object):
             my_courses = dashboard_soup.findAll('article', 'my-course')
             i = 0
             for my_course in my_courses:
-                i += 1
                 course_url = my_course.a['href']
-                courseware_url = re.sub(r'\/info$','/courseware',course_url)
                 course_name = my_course.h3.text
+                
+                if INTERACTIVE:
+                    launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
+                    launch_download = raw_input(launch_download_msg)
+                    if (launch_download.lower() == "n"):
+                        continue
+
+                i += 1
+                courseware_url = re.sub(r'\/info$','/courseware',course_url)
                 self.courses.append({'name':course_name, 'url':courseware_url})
                 print '[%02i] %s' % (i, course_name)
 
     def list_chapters(self, course_i):
         self.paragraphs = []
         if course_i < len(self.courses) and course_i >= 0:
+            print "Getting chapters..."
             course = self.courses[course_i]
             course_name = course['name']
             courseware = self._br.open(SITE_URL+course['url'])
@@ -117,8 +127,15 @@ class TenGenBrowser(object):
             chapters = courseware_soup.findAll('div','chapter')
             i = 0
             for chapter in chapters:
-                i += 1
                 chapter_name = chapter.find('h3').find('a').text
+
+                if INTERACTIVE:
+                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
+                    launch_download = raw_input(launch_download_msg)
+                    if (launch_download.lower() == "n"):
+                        continue
+                
+                i += 1
                 print '\t[%02i] %s' % (i, chapter_name)
                 paragraphs = chapter.find('ul').findAll('li')
                 j = 0
