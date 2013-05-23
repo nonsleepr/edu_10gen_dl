@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import glob
 import json
 import mechanize
@@ -14,10 +17,14 @@ from youtube_dl.InfoExtractors  import YoutubeIE
 from youtube_dl.utils import sanitize_filename
 
 import config
-YDL_PARAMS_FILE = 'ydl_params.json'
 
+base_url = 'https://'+config.DOMAIN
+# Dirty hack for differences in 10gen and edX implementation
+if 'edx' in config.DOMAIN.split('.'):
+    login_url = '/login_ajax'
+else:
+    login_url = '/login'
 
-login_url = '/login'
 dashboard_url = '/dashboard'
 youtube_url = 'http://www.youtube.com/watch?v='
 
@@ -53,15 +60,14 @@ class EdXBrowser(object):
         self._br.set_handle_robots(False)
         self._br.set_cookiejar(self._cj)
         self._br.addheaders.append(('X-CSRFToken',csrftoken))
-        self._br.addheaders.append(('Referer',config.SITE_URL))
+        self._br.addheaders.append(('Referer',base_url))
         self._logged_in = False
-        with open(YDL_PARAMS_FILE) as fydl:
-            self._fd = FileDownloader(json.load(fydl))
-            self._fd.add_info_extractor(YoutubeIE())
+        self._fd = FileDownloader(config.YDL_PARAMS)
+        self._fd.add_info_extractor(YoutubeIE())
 
     def login(self, email, password):
         try:
-            login_resp = self._br.open(config.SITE_URL + login_url, urlencode({'email':email, 'password':password}))
+            login_resp = self._br.open(base_url + login_url, urlencode({'email':email, 'password':password}))
             login_state = json.loads(login_resp.read())
             self._logged_in = login_state.get('success')
             if not self._logged_in:
@@ -73,7 +79,7 @@ class EdXBrowser(object):
     def list_courses(self):
         self.courses = []
         if self._logged_in:
-            dashboard = self._br.open(config.SITE_URL + dashboard_url)
+            dashboard = self._br.open(base_url + dashboard_url)
             dashboard_soup = BeautifulSoup(dashboard.read())
             my_courses = dashboard_soup.findAll('article', 'my-course')
             i = 0
@@ -98,7 +104,7 @@ class EdXBrowser(object):
             print "Getting chapters..."
             course = self.courses[course_i]
             course_name = course['name']
-            courseware = self._br.open(config.SITE_URL+course['url'])
+            courseware = self._br.open(base_url+course['url'])
             courseware_soup = BeautifulSoup(courseware.read())
             chapters = courseware_soup.findAll('div','chapter')
             i = 0
@@ -139,7 +145,7 @@ class EdXBrowser(object):
                 print "Processing of %s skipped" % nametmpl
                 continue
             print "Processing %s..." % nametmpl
-            par = self._br.open(config.SITE_URL + url)
+            par = self._br.open(base_url + url)
             par_soup = BeautifulSoup(par.read())
             contents = par_soup.findAll('div','seq_contents')
             k = 0

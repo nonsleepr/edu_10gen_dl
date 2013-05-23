@@ -21,6 +21,9 @@ Accepts destination path as optional parameter.
     pip install -r requirements.txt
 
 Populate `config.py` with domain and credentials of site, from which you're going to download videos.
+
+Optionally set another options in `config.py` like `writesubtitles` to enable subtitles.
+
 ### Usage:
 
 + `python edx_dl.py`
