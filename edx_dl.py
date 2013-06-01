@@ -189,7 +189,7 @@ if __name__ == '__main__':
     edxb.list_courses()
     print "Processing..."
     for c in range(0,len(edxb.courses)):
-        print 'Course: ' + str(tgb.courses[c])
+        print 'Course: ' + str(edxb.courses[c])
         print 'Chapters:'
         edxb.list_chapters(c)
         edxb.download()
