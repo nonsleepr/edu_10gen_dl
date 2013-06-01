@@ -179,10 +179,14 @@ class EdXBrowser(object):
 if __name__ == '__main__':
     INTERACTIVE = ('--interactive' in sys.argv)
 
+    if INTERACTIVE:
+        sys.argv.remove('--interactive')
+
     if len(sys.argv) >= 2:
         DIRECTORY = sys.argv[-1].strip('"')
     else:
         DIRECTORY = os.path.curdir
+    print 'Downloading to %s' % DIRECTORY
 
     edxb = EdXBrowser()
     edxb.login(config.EMAIL, config.PASSWORD)
