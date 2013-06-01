@@ -89,7 +89,7 @@ class EdXBrowser(object):
                 course_name = my_course.h3.text
                 
                 if INTERACTIVE:
-                    launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
+                    launch_download_msg = 'Download the course [%s]? (y/n) ' % (course_name)
                     launch_download = raw_input(launch_download_msg)
                     if (launch_download.lower() == "n"):
                         continue
@@ -113,7 +113,7 @@ class EdXBrowser(object):
                 chapter_name = chapter.find('h3').find('a').text
 
                 if INTERACTIVE:
-                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
+                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n) ' % (course_name, chapter_name)
                     launch_download = raw_input(launch_download_msg)
                     if (launch_download.lower() == "n"):
                         continue
