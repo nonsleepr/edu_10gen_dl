@@ -18,6 +18,7 @@ from youtube_dl.utils import sanitize_filename
 
 import config
 
+replace_space_with_underscore = True
 base_url = 'https://'+config.DOMAIN
 # Dirty hack for differences in 10gen and edX implementation
 if 'edx' in config.DOMAIN.split('.'):
@@ -136,8 +137,8 @@ class EdXBrowser(object):
             #         + '%02i.%02i.*' % (i,j)
             #fn = glob.glob(DIRECTORY + nametmpl)
             nametmpl = os.path.join(DIRECTORY,
-                                    sanitize_filename(course_name),
-                                    sanitize_filename(chapter_name),
+                                    sanitize_filename(course_name, replace_space_with_underscore),
+                                    sanitize_filename(chapter_name, replace_space_with_underscore),
                                     '%02i.%02i.*' % (i,j))
             fn = glob.glob(nametmpl)
             
@@ -165,10 +166,10 @@ class EdXBrowser(object):
                     #        + '%02i.%02i.%02i ' % (i,j,k) \
                     #        + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     outtmpl = os.path.join(DIRECTORY,
-                        sanitize_filename(course_name),
-                        sanitize_filename(chapter_name),
+                        sanitize_filename(course_name, replace_space_with_underscore),
+                        sanitize_filename(chapter_name, replace_space_with_underscore),
                         '%02i.%02i.%02i ' % (i,j,k) + \
-                        sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s')
+                        sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s', replace_space_with_underscore)
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
                 except Exception as e:
