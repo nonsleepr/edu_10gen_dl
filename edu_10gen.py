@@ -127,7 +127,7 @@ class TenGenBrowser(object):
                     par_name = paragraph.p.text
                     par_url = paragraph.a['href']
                     self.paragraphs.append((course_name, i, j, chapter_name, par_name, par_url))
-                    print '\t[%02i.%02i] %s' % (i, j, par_name)
+                    print '\t\t[%02i.%02i] %s' % (i, j, par_name)
 
     def download(self):
         print "\n-----------------------\nStart downloading\n-----------------------\n"
@@ -154,11 +154,11 @@ class TenGenBrowser(object):
                     video_id = video_stream.split(':')[1]
                     video_url = youtube_url + video_id
                     k += 1
-                    print '[%02i.%02i.%i] %s (%s)' % (i, j, k, par_name, video_type)
+                    print '[%02i.%02i.%02i] %s (%s)' % (i, j, k, par_name, video_type)
                     #f.writelines(video_url+'\n')
                     outtmpl = DIRECTORY + sanitize_filename(course_name) + '/' \
                             + sanitize_filename(chapter_name) + '/' \
-                            + '%02i.%02i.%i ' % (i,j,k) \
+                            + '%02i.%02i.%02i ' % (i,j,k) \
                             + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
@@ -169,7 +169,11 @@ class TenGenBrowser(object):
 
 tgb = TenGenBrowser()
 tgb.login(EMAIL, PASSWORD)
+print 'Found the following courses:'
 tgb.list_courses()
+print "Processing..."
 for c in range(0,len(tgb.courses)):
+    print 'Course: ' + str(tgb.courses[c])
+    print 'Chapters:'
     tgb.list_chapters(c)
     tgb.download()
