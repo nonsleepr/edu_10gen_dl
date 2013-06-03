@@ -170,7 +170,7 @@ class EdXBrowser(object):
                         sanitize_filename(course_name, replace_space_with_underscore),
                         sanitize_filename(chapter_name, replace_space_with_underscore),
                         '%02i.%02i.%02i ' % (i,j,k) + \
-                        sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s', replace_space_with_underscore)
+                        sanitize_filename('%s (%s)' % (par_name, video_type), replace_space_with_underscore) + '.%(ext)s')
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
                 except Exception as e:
