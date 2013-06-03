@@ -18,6 +18,7 @@ from youtube_dl.utils import sanitize_filename
 
 import config
 
+replace_space_with_underscore = True
 base_url = 'https://'+config.DOMAIN
 # Dirty hack for differences in 10gen and edX implementation
 if 'edx' in config.DOMAIN.split('.'):
@@ -52,7 +53,7 @@ def csrfCookie(csrftoken):
 
 
 class EdXBrowser(object):
-    def __init__(self):
+    def __init__(self, config):
         self._br = mechanize.Browser()
         self._cj = mechanize.LWPCookieJar()
         csrftoken = makeCsrf()
@@ -64,10 +65,11 @@ class EdXBrowser(object):
         self._logged_in = False
         self._fd = FileDownloader(config.YDL_PARAMS)
         self._fd.add_info_extractor(YoutubeIE())
+        self._config = config
 
-    def login(self, email, password):
+    def login(self):
         try:
-            login_resp = self._br.open(base_url + login_url, urlencode({'email':email, 'password':password}))
+            login_resp = self._br.open(base_url + login_url, urlencode({'email':self._config.EMAIL, 'password':self._config.PASSWORD}))
             login_state = json.loads(login_resp.read())
             self._logged_in = login_state.get('success')
             if not self._logged_in:
@@ -87,8 +89,8 @@ class EdXBrowser(object):
                 course_url = my_course.a['href']
                 course_name = my_course.h3.text
                 
-                if INTERACTIVE:
-                    launch_download_msg = 'Download the course [%s]? (y/n)' % (course_name)
+                if self._config.interactive_mode:
+                    launch_download_msg = 'Download the course [%s] from %s? (y/n) ' % (course_name, course_url)
                     launch_download = raw_input(launch_download_msg)
                     if (launch_download.lower() == "n"):
                         continue
@@ -111,8 +113,8 @@ class EdXBrowser(object):
             for chapter in chapters:
                 chapter_name = chapter.find('h3').find('a').text
 
-                if INTERACTIVE:
-                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n)' % (course_name, chapter_name)
+                if self._config.interactive_mode:
+                    launch_download_msg = 'Download the chapter [%s - %s]? (y/n) ' % (course_name, chapter_name)
                     launch_download = raw_input(launch_download_msg)
                     if (launch_download.lower() == "n"):
                         continue
@@ -126,7 +128,7 @@ class EdXBrowser(object):
                     par_name = paragraph.p.text
                     par_url = paragraph.a['href']
                     self.paragraphs.append((course_name, i, j, chapter_name, par_name, par_url))
-                    print '\t[%02i.%02i] %s' % (i, j, par_name)
+                    print '\t\t[%02i.%02i] %s' % (i, j, par_name)
 
     def download(self):
         print "\n-----------------------\nStart downloading\n-----------------------\n"
@@ -136,8 +138,8 @@ class EdXBrowser(object):
             #         + '%02i.%02i.*' % (i,j)
             #fn = glob.glob(DIRECTORY + nametmpl)
             nametmpl = os.path.join(DIRECTORY,
-                                    sanitize_filename(course_name),
-                                    sanitize_filename(chapter_name),
+                                    sanitize_filename(course_name, replace_space_with_underscore),
+                                    sanitize_filename(chapter_name, replace_space_with_underscore),
                                     '%02i.%02i.*' % (i,j))
             fn = glob.glob(nametmpl)
             
@@ -158,17 +160,17 @@ class EdXBrowser(object):
                     video_id = video_stream.split(':')[1]
                     video_url = youtube_url + video_id
                     k += 1
-                    print '[%02i.%02i.%i] %s (%s)' % (i, j, k, par_name, video_type)
+                    print '[%02i.%02i.%02i] %s (%s)' % (i, j, k, par_name, video_type)
                     #f.writelines(video_url+'\n')
                     #outtmpl = DIRECTORY + sanitize_filename(course_name) + '/' \
                     #        + sanitize_filename(chapter_name) + '/' \
-                    #        + '%02i.%02i.%i ' % (i,j,k) \
+                    #        + '%02i.%02i.%02i ' % (i,j,k) \
                     #        + sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s'
                     outtmpl = os.path.join(DIRECTORY,
-                        sanitize_filename(course_name),
-                        sanitize_filename(chapter_name),
-                        '%02i.%02i.%i ' % (i,j,k) + \
-                        sanitize_filename('%s (%s)' % (par_name, video_type)) + '.%(ext)s')
+                        sanitize_filename(course_name, replace_space_with_underscore),
+                        sanitize_filename(chapter_name, replace_space_with_underscore),
+                        '%02i.%02i.%02i ' % (i,j,k) + \
+                        sanitize_filename('%s (%s)' % (par_name, video_type), replace_space_with_underscore) + '.%(ext)s')
                     self._fd.params['outtmpl'] = outtmpl
                     self._fd.download([video_url])
                 except Exception as e:
@@ -176,16 +178,27 @@ class EdXBrowser(object):
                     pass
 
 if __name__ == '__main__':
-    INTERACTIVE = ('--interactive' in sys.argv)
+    config.interactive_mode = ('--interactive' in sys.argv)
+
+    if config.interactive_mode:
+        sys.argv.remove('--interactive')
 
     if len(sys.argv) >= 2:
         DIRECTORY = sys.argv[-1].strip('"')
     else:
         DIRECTORY = os.path.curdir
+    print 'Downloading to ''%s'' directory' % DIRECTORY
 
-    edxb = EdXBrowser()
-    edxb.login(config.EMAIL, config.PASSWORD)
+    edxb = EdXBrowser(config)
+    edxb.login()
+    print 'Found the following courses:'
     edxb.list_courses()
-    for c in range(0,len(edxb.courses)):
+    if edxb.courses:
+        print "Processing..."
+    else:
+        print "No courses selected, nothing to download"
+    for c in range(len(edxb.courses)):
+        print 'Course: ' + str(edxb.courses[c])
+        print 'Chapters:'
         edxb.list_chapters(c)
         edxb.download()
