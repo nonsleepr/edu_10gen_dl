@@ -18,7 +18,8 @@ Accepts destination path as optional parameter.
 ### Installation
 
     git clone https://github.com/nonsleepr/edu_10gen_dl.git
-    pip install -r requirements.txt
+    cd edu_10gen_dl
+    sudo pip install -r requirements.txt
 
 Populate `config.py` with domain and credentials of site, from which you're going to download videos.
 
