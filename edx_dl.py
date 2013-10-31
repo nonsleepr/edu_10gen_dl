@@ -12,8 +12,8 @@ from math import floor
 from random import random
 from urllib import urlencode
 
-from youtube_dl.FileDownloader import FileDownloader
-from youtube_dl.InfoExtractors  import YoutubeIE
+from youtube_dl.YoutubeDL import YoutubeDL
+from youtube_dl.extractor  import YoutubeIE
 from youtube_dl.utils import sanitize_filename
 
 import config
@@ -63,7 +63,7 @@ class EdXBrowser(object):
         self._br.addheaders.append(('X-CSRFToken',csrftoken))
         self._br.addheaders.append(('Referer',base_url))
         self._logged_in = False
-        self._fd = FileDownloader(config.YDL_PARAMS)
+        self._fd = YoutubeDL(config.YDL_PARAMS)
         self._fd.add_info_extractor(YoutubeIE())
         self._config = config
 
