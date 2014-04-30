@@ -1,8 +1,8 @@
 EMAIL = 'your-email@he.re'
 PASSWORD='password'
-DOMAIN='courses.edx.org'
+#DOMAIN='courses.edx.org'
 #DOMAIN='education.10gen.com'
-
+DOMAIN='university.mongodb.com' 
 
 YDL_PARAMS = \
     {'consoletitle': False,
